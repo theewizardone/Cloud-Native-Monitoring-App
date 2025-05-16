@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>System Monitoring</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
@@ -10,17 +11,22 @@
             background-color: rgba(151, 128, 128, 0.688);
             padding: 20px;
         }
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>System Monitoring</h1>
-        <div id="cpu-gauge"></div>
-        <div id="mem-gauge"></div>
+        <div id="cpu-gauge" class="plotly-graph-div"></div>
+        <div id="mem-gauge" class="plotly-graph-div"></div>
         {% if message %}
         <div class="alert alert-danger">{{ message }}</div>
         {% endif %}
     </div>
+
     <script>
         var cpuGauge = {
             type: "indicator",
@@ -40,15 +46,15 @@
                 threshold: {
                     line: { color: "red", width: 4 },
                     thickness: 0.75,
-                    value: {{ cpu_metric }}
+                    value: {{ cpu_metric | float }}
                 }
             }
         };
-        
+
         var memGauge = {
             type: "indicator",
             mode: "gauge+number",
-            value: {{ mem_metric }},
+            value: {{ cpu_metric | float }},
             gauge: {
                 axis: { range: [null, 100] },
                 bar: { color: "#1f77b4" },
@@ -63,16 +69,39 @@
                 threshold: {
                     line: { color: "red", width: 4 },
                     thickness: 0.75,
-                    value: {{ mem_metric }}
+                    value: {{ cpu_metric | float }}
                 }
             }
         };
-        
+
         var cpuGaugeLayout = { title: "CPU Utilization" };
         var memGaugeLayout = { title: "Memory Utilization" };
-        
+
         Plotly.newPlot('cpu-gauge', [cpuGauge], cpuGaugeLayout);
         Plotly.newPlot('mem-gauge', [memGauge], memGaugeLayout);
+
+        // Live update logic
+        function updateGauges() {
+            fetch('/metrics')
+                .then(response => response.json())
+                .then(data => {
+                    const cpu = data.cpu;
+                    const mem = data.mem;
+
+                    Plotly.update('cpu-gauge', {
+                        value: [cpu],
+                        gauge: [{ threshold: { value: cpu } }]
+                    });
+
+                    Plotly.update('mem-gauge', {
+                        value: [mem],
+                        gauge: [{ threshold: { value: mem } }]
+                    });
+                })
+                .catch(error => console.error("Gauge update failed:", error));
+        }
+
+        setInterval(updateGauges, 5000); // every 5 seconds
     </script>
 </body>
 </html>
