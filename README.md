@@ -1,219 +1,168 @@
 # **Cloud Native Resource Monitoring Python App on K8s!**
 
-## Things you will Learn 🤯
+## Things you will Learn 🧩
 
-1. Python and How to create Monitoring Application in Python using Flask and psutil
-2. How to run a Python App locally.
-3. Learn Docker and How to containerize a Python application
-    1. Creating Dockerfile
-    2. Building DockerImage
-    3. Running Docker Container
-    4. Docker Commands
-4. Create ECR repository using Python Boto3 and pushing Docker Image to ECR
-5. Learn Kubernetes and Create EKS cluster and Nodegroups
-6. Create Kubernetes Deployments and Services using Python!
+1. Build a real-time Monitoring Application using Python (Flask, psutil) with live updating graphs.
+2. Run a Python App locally.
+3. Learn Docker and How to containerize a Python application:
 
-## **Prerequisites** !
+   1. Creating Dockerfile
+   2. Building DockerImage
+   3. Running Docker Container
+   4. Docker Commands
+4. Create an ECR repository using Python Boto3 and push Docker Image to ECR.
+5. Learn Kubernetes and Create EKS cluster and Nodegroups.
+6. Create Kubernetes Deployments and Services using Python Kubernetes SDK.
+7. Live monitoring with Plotly.js gauge charts and alert system for high CPU/memory usage.
 
-(Things to have before starting the projects)
+## **Prerequisites**
 
-- [x]  AWS Account.
-- [x]  Programmatic access and AWS configured with CLI.
-- [x]  Python3 Installed.
-- [x]  Docker and Kubectl installed.
-- [x]  Code editor (Vscode)
+(Things to have before starting the project)
 
-# ✨Let’s Start the Project ✨
+* [x] AWS Account.
+* [x] Programmatic access and AWS CLI configured.
+* [x] Python 3 Installed (preferably Python 3.11).
+* [x] Docker and Kubectl installed.
+* [x] Code editor (VS Code).
+
+# ✨ Let’s Start the Project ✨
 
 ## **Part 1: Deploying the Flask application locally**
 
 ### **Step 1: Clone the code**
 
-Clone the code from the repository:
-
-```
+```bash
 git clone <repository_url>
 ```
 
 ### **Step 2: Install dependencies**
 
-The application uses the **`psutil`** and **`Flask`, Plotly, boto3** libraries. Install them using pip:
+The application uses the **`psutil`**, **`Flask`**, **`Plotly`**, and **`boto3`** libraries. Install them using pip:
 
-```
+```bash
 pip3 install -r requirements.txt
 ```
 
 ### **Step 3: Run the application**
 
-To run the application, navigate to the root directory of the project and execute the following command:
-
-```
+```bash
 python3 app.py
 ```
 
-This will start the Flask server on **`localhost:5000`**. Navigate to [http://localhost:5000/](http://localhost:5000/) on your browser to access the application.
+Visit: [http://localhost:5000/](http://localhost:5000/) to view the real-time monitoring dashboard.
 
 ## **Part 2: Dockerizing the Flask application**
 
-### **Step 1: Create a Dockerfile**
+### **Step 1: Dockerfile**
 
-Create a **`Dockerfile`** in the root directory of the project with the following contents:
-
-```
-# Use the official Python image as the base image
+```Dockerfile
 FROM python:3.9-slim-buster
-
-# Set the working directory in the container
 WORKDIR /app
-
-# Copy the requirements file to the working directory
 COPY requirements.txt .
-
 RUN pip3 install --no-cache-dir -r requirements.txt
-
-# Copy the application code to the working directory
 COPY . .
-
-# Set the environment variables for the Flask app
 ENV FLASK_RUN_HOST=0.0.0.0
-
-# Expose the port on which the Flask app will run
 EXPOSE 5000
-
-# Start the Flask app when the container is run
 CMD ["flask", "run"]
 ```
 
-### **Step 2: Build the Docker image**
+### **Step 2: Build Docker image**
 
-To build the Docker image, execute the following command:
-
-```
-docker build -t <image_name> .
+```bash
+docker build -t cloud-monitoring-app .
 ```
 
-### **Step 3: Run the Docker container**
+### **Step 3: Run the container**
 
-To run the Docker container, execute the following command:
-
-```
-docker run -p 5000:5000 <image_name>
+```bash
+docker run -p 5000:5000 cloud-monitoring-app
 ```
 
-This will start the Flask server in a Docker container on **`localhost:5000`**. Navigate to [http://localhost:5000/](http://localhost:5000/) on your browser to access the application.
+Visit [http://localhost:5000/](http://localhost:5000/)
 
-## **Part 3: Pushing the Docker image to ECR**
+## **Part 3: Push Docker image to AWS ECR**
 
-### **Step 1: Create an ECR repository**
+### **Step 1: Create ECR repository using boto3**
 
-Create an ECR repository using Python:
-
-```
+```python
 import boto3
 
-# Create an ECR client
+repository_name = 'my-cloud-native-repo'
 ecr_client = boto3.client('ecr')
-
-# Create a new ECR repository
-repository_name = 'my-ecr-repo'
 response = ecr_client.create_repository(repositoryName=repository_name)
-
-# Print the repository URI
-repository_uri = response['repository']['repositoryUri']
-print(repository_uri)
+print(response['repository']['repositoryUri'])
 ```
 
-### **Step 2: Push the Docker image to ECR**
+### **Step 2: Authenticate & push image**
 
-Push the Docker image to ECR using the push commands on the console:
+Follow AWS ECR instructions to login, tag, and push:
 
+```bash
+eval $(aws ecr get-login-password --region <region>) | docker login --username AWS --password-stdin <account_id>.dkr.ecr.<region>.amazonaws.com
+
+docker tag cloud-monitoring-app:latest <account_id>.dkr.ecr.<region>.amazonaws.com/my-cloud-native-repo:latest
+
+docker push <account_id>.dkr.ecr.<region>.amazonaws.com/my-cloud-native-repo:latest
 ```
-docker push <ecr_repo_uri>:<tag>
-```
 
-## **Part 4: Creating an EKS cluster and deploying the app using Python**
+## **Part 4: Deploy to Kubernetes (EKS) using Python**
 
-### **Step 1: Create an EKS cluster**
+### **Step 1: Create EKS cluster and nodegroup**
 
-Create an EKS cluster and add node group
+Use AWS CLI, console, or eksctl to create an EKS cluster and attach worker nodes.
 
-### **Step 2: Create a node group**
+### **Step 2: Kubernetes Deployment and Service using Python**
 
-Create a node group in the EKS cluster.
-
-### **Step 3: Create deployment and service**
-
-```jsx
+```python
 from kubernetes import client, config
 
-# Load Kubernetes configuration
 config.load_kube_config()
-
-# Create a Kubernetes API client
 api_client = client.ApiClient()
 
-# Define the deployment
+# Define deployment
 deployment = client.V1Deployment(
     metadata=client.V1ObjectMeta(name="my-flask-app"),
     spec=client.V1DeploymentSpec(
         replicas=1,
-        selector=client.V1LabelSelector(
-            match_labels={"app": "my-flask-app"}
-        ),
+        selector=client.V1LabelSelector(match_labels={"app": "my-flask-app"}),
         template=client.V1PodTemplateSpec(
-            metadata=client.V1ObjectMeta(
-                labels={"app": "my-flask-app"}
-            ),
-            spec=client.V1PodSpec(
-                containers=[
-                    client.V1Container(
-                        name="my-flask-container",
-                        image="568373317874.dkr.ecr.us-east-1.amazonaws.com/my-cloud-native-repo:latest",
-                        ports=[client.V1ContainerPort(container_port=5000)]
-                    )
-                ]
-            )
+            metadata=client.V1ObjectMeta(labels={"app": "my-flask-app"}),
+            spec=client.V1PodSpec(containers=[
+                client.V1Container(
+                    name="flask-container",
+                    image="<your_ecr_image_uri>",
+                    ports=[client.V1ContainerPort(container_port=5000)]
+                )
+            ])
         )
     )
 )
 
-# Create the deployment
-api_instance = client.AppsV1Api(api_client)
-api_instance.create_namespaced_deployment(
-    namespace="default",
-    body=deployment
-)
+apps_v1 = client.AppsV1Api(api_client)
+apps_v1.create_namespaced_deployment(namespace="default", body=deployment)
 
-# Define the service
+# Define service
 service = client.V1Service(
-    metadata=client.V1ObjectMeta(name="my-flask-service"),
+    metadata=client.V1ObjectMeta(name="flask-service"),
     spec=client.V1ServiceSpec(
         selector={"app": "my-flask-app"},
         ports=[client.V1ServicePort(port=5000)]
     )
 )
 
-# Create the service
-api_instance = client.CoreV1Api(api_client)
-api_instance.create_namespaced_service(
-    namespace="default",
-    body=service
-)
+core_v1 = client.CoreV1Api(api_client)
+core_v1.create_namespaced_service(namespace="default", body=service)
 ```
 
-make sure to edit the name of the image on line 25 with your image Uri.
+> 🔗 Make sure to replace `<your_ecr_image_uri>` with your actual image URI from ECR.
 
-- Once you run this file by running “python3 eks.py” deployment and service will be created.
-- Check by running following commands:
-
-```jsx
-kubectl get deployment -n default (check deployments)
-kubectl get service -n default (check service)
-kubectl get pods -n default (to check the pods)
-```
-
-Once your pod is up and running, run the port-forward to expose the service
+### **Step 3: Check deployment and port forward**
 
 ```bash
-kubectl port-forward service/<service_name> 5000:5000
+kubectl get deployments -n default
+kubectl get services -n default
+kubectl get pods -n default
+kubectl port-forward service/flask-service 5000:5000
 ```
+
+Access your live app at [http://localhost:5000/](http://localhost:5000/)
